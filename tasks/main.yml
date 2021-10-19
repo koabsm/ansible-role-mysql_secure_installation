@@ -2,10 +2,12 @@
 # tasks file for ansible-role-mysql_secure_installation
 
 - name: add mysql python support for RedHat family
-  yum: name=MySQL-python state=installed
+  yum: name=MySQL-python state=present
   when: ansible_os_family == 'RedHat'
+
 - name: add mysql python support for Debian family
-  apt: update_cache=yes name=python-mysqldb state=installed
+  #apt: update_cache=yes name=python-mysqldb state=present
+  apt: update_cache=yes name=python3-mysqldb state=present 
   when: ansible_os_family == 'Debian'
   
 - name: 1. set mysql root pass
@@ -15,6 +17,7 @@
       user: root
       host_all: yes
       password: "{{ msi_new_mysql_root_pass }}"
+
 - name: 2. disable remote root login
   mysql_user:
       login_user: root
@@ -22,6 +25,7 @@
       user: root
       host: "{{ ansible_fqdn | lower }}"
       state: absent
+
 - name: 3. remove anonymous users
   mysql_user:
       login_user: root
@@ -29,6 +33,7 @@
       user: ''
       host_all: yes
       state: absent
+
 - name: 4. remove test database
   mysql_db: 
       login_user: root
@@ -36,10 +41,12 @@
       db: test
       state: absent
   register: remove_testdb
+
 - name: 4.1 remove test database priviledges
   block:
     - shell: >
         mysql -u root -p{{ msi_new_mysql_root_pass }} 
         -e "DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%'"
     - shell: mysql -u root -p{{ msi_new_mysql_root_pass }} -e "FLUSH PRIVILEGES"
-  when: remove_testdb|changed
+  #when: remove_testdb|changed
+  #ignore_errors: yes
